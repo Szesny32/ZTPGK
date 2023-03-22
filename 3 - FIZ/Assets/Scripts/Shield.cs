@@ -5,6 +5,7 @@ using UnityEngine;
 public class Shield : MonoBehaviour
 {
     // Start is called before the first frame update
+    public _GameManager gameManager;
     void Start()
     {
         
@@ -20,8 +21,9 @@ public class Shield : MonoBehaviour
 
         if (other.gameObject.name == "Plane"){
 
-            Vector3 force = other.gameObject.transform.forward * 20000f;
+            Vector3 force = other.gameObject.transform.forward * 1000f;
             other.gameObject.GetComponent<Rigidbody>().AddForce(force);
+            gameManager.addPoint();
         }
      }
 }
