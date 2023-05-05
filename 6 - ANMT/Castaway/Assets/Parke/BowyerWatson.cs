@@ -18,17 +18,21 @@ public class BowyerWatson : MonoBehaviour
     List<Triangle> triangulation = new List<Triangle>();      
     List<GameObject> trackers = new List<GameObject>();
 
-    GameObject faceMesh;
+    public GameObject faceMesh;
     MeshFilter meshFilter;
     MeshRenderer meshRenderer;
 
+
+    bool wireframe = false;
+    
 
     Vector3 offset  = new Vector3(2f, 0f, 0f);
     List<Vector3> supertTriangle = new List<Vector3>();
 
     void Start()
     {
-        faceMesh = new GameObject("faceMesh");
+        //faceMesh = new GameObject("faceMesh");
+        faceMesh.transform.position = this.transform.position;
         meshFilter = faceMesh.AddComponent<MeshFilter>();
         meshRenderer = faceMesh.AddComponent<MeshRenderer>();
         supertTriangle.Add(actor.transform.position + new Vector3(-1.5f, 0f, 0f));
@@ -44,9 +48,12 @@ public class BowyerWatson : MonoBehaviour
     
     void Update()
     {
-   
         Reposition();
-        createMesh();
+        if (Input.GetButtonDown("Fire2")){
+            wireframe = !wireframe;
+            
+            meshRenderer.material = wireframe? new Material(Shader.Find("Custom/Wireframe")) : new Material(Shader.Find("Particles/Standard Unlit"))  ;
+        }
 
     }
 
@@ -58,7 +65,7 @@ public class BowyerWatson : MonoBehaviour
                 GameObject tracker = GameObject.CreatePrimitive(PrimitiveType.Sphere);
                 tracker.name = "Tracker-"+i;
                 tracker.transform.position = pointList[i];
-                tracker.transform.localScale = new Vector3(0.01f, 0.01f, 0.01f);
+                tracker.transform.localScale = new Vector3(0.001f, 0.001f, 0.001f);
                 trackers.Add(tracker);
             }    
     }
@@ -117,12 +124,29 @@ public class BowyerWatson : MonoBehaviour
                     P2 = edge.B,
                     P3 = pointIndex
                 };
+
+
+                Vector3 normal = CalculateNormal(pointList[newTriangle.P1], pointList[newTriangle.P2], pointList[newTriangle.P3]);
+                if (Vector3.Dot(normal, Vector3.back) < 0){
+                    // Kolejność wierzchołków jest nieprawidłowa, trzeba ją zmienić.
+                    int temp = newTriangle.P2;
+                    newTriangle.P2 = newTriangle.P3;
+                    newTriangle.P3 = temp;
+                }
                 triangulation.Add(newTriangle);
             }       
         }
        
         createMesh();
     }
+
+    Vector3 CalculateNormal(Vector3 p1, Vector3 p2, Vector3 p3){
+        Vector3 v1 = p2 - p1;
+        Vector3 v2 = p3 - p1;
+        return Vector3.Cross(v1, v2).normalized;
+    }
+
+
 
      bool isInsideCricle(Vector3 point, float radius, Vector2 circumCenter){
             return (Vector2.Distance(point, circumCenter) < radius) ? true : false;
@@ -207,7 +231,14 @@ public class BowyerWatson : MonoBehaviour
             trackers[i].transform.position = markers[i-3]+=offset;
         }    
 
-        createMesh();
+        Vector3[] positions = new Vector3[trackers.Count];
+        for (int i = 0; i < trackers.Count; i++){
+            positions[i] = trackers[i].transform.position;
+        }
+
+
+        meshFilter.mesh.vertices = positions;
+
 
     }
 
@@ -238,21 +269,46 @@ public class BowyerWatson : MonoBehaviour
 
 
         mesh.vertices = positions;
-        int[] triangulationArray = new int[triangulation.Count * 3];
+
+   
+
+        List<Triangle> faceTriangles = new List<Triangle>();
+        foreach(Triangle triangle in triangulation){
+            bool isSuperTriangleChild = triangle.P1 == 0 || triangle.P1 == 1 || triangle.P1 == 2 || triangle.P2 == 0 || triangle.P2 == 1 || triangle.P2 == 2 || triangle.P3 == 0 || triangle.P3 == 1 || triangle.P3 == 2; 
+            if(!isSuperTriangleChild){
+                faceTriangles.Add(triangle);
+            }
+        }
+
+        int[] triangulationArray = new int[faceTriangles.Count * 3];
+        for (int i = 0; i < faceTriangles.Count; i++) {
+            triangulationArray[i * 3] = faceTriangles[i].P1;
+            triangulationArray[i * 3 + 1] = faceTriangles[i].P2;
+            triangulationArray[i * 3 + 2] = faceTriangles[i].P3;
+        }
+ 
+        
+
+
+
+        // int[] triangulationArray = new int[triangulation.Count * 3];
+        // for (int i = 0; i < triangulation.Count; i++) {
+        //     triangulationArray[i * 3] = triangulation[i].P1;
+        //     triangulationArray[i * 3 + 1] = triangulation[i].P2;
+        //     triangulationArray[i * 3 + 2] = triangulation[i].P3;
+        // }
+
         Color[] colors = new Color[pointList.Count]; // Nowa tablica kolorów
-        for (int i = 0; i < triangulation.Count; i++) {
-            triangulationArray[i * 3] = triangulation[i].P1;
-            triangulationArray[i * 3 + 1] = triangulation[i].P2;
-            triangulationArray[i * 3 + 2] = triangulation[i].P3;
-        }
         for (int i = 0; i < pointList.Count; i++) {
+            
             colors[i] = new Color(Random.value, Random.value, Random.value);
+            Debug.Log(colors[i]);
         }
+
         mesh.triangles = triangulationArray;
         mesh.colors = colors; 
         meshFilter.mesh = mesh;
 
-        Material material = new Material(Shader.Find("Custom/Wireframe"));
-        meshRenderer.material = material;
+        meshRenderer.material = wireframe? new Material(Shader.Find("Custom/Wireframe")) : new Material(Shader.Find("Particles/Standard Unlit"))  ;
     }
 }
