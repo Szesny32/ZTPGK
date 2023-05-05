@@ -37,12 +37,10 @@ public class MarkerInjector : MonoBehaviour{
     void Update(){
         MarkerTracking();
 
-        if (Input.GetButtonDown("Fire1")){
-            CreateMarker();
-        }
+       
     }
     
-    void CreateMarker(){
+    public void CreateMarker(){
         Ray ray = camera.ScreenPointToRay(Input.mousePosition);
         RaycastHit raycastHit;
 

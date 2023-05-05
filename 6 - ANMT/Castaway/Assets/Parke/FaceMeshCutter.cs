@@ -2,11 +2,9 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class FaceMeshController : MonoBehaviour
+public class FaceMeshCutter : MonoBehaviour
 {
-    List<Vector3> pointList = new List<Vector3>();
-    List<Triangle> triangles = new List<Triangle>();
-
+    // Start is called before the first frame update
     void Start()
     {
         
@@ -17,8 +15,4 @@ public class FaceMeshController : MonoBehaviour
     {
         
     }
-
-
-    
-
 }

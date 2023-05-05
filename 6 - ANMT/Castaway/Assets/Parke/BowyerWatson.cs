@@ -18,10 +18,13 @@ public class BowyerWatson : MonoBehaviour
     List<Triangle> triangulation = new List<Triangle>();      
     List<GameObject> trackers = new List<GameObject>();
 
-    public GameObject faceMesh;
+    HashSet<int> excludes = new HashSet<int>();
+
+    GameObject faceMesh;
     MeshFilter meshFilter;
     MeshRenderer meshRenderer;
-
+    MeshCollider meshCollider = null;
+    public Camera camera;
 
     bool wireframe = false;
     
@@ -31,8 +34,8 @@ public class BowyerWatson : MonoBehaviour
 
     void Start()
     {
-        //faceMesh = new GameObject("faceMesh");
-        faceMesh.transform.position = this.transform.position;
+        faceMesh = new GameObject("faceMesh");
+        
         meshFilter = faceMesh.AddComponent<MeshFilter>();
         meshRenderer = faceMesh.AddComponent<MeshRenderer>();
         supertTriangle.Add(actor.transform.position + new Vector3(-1.5f, 0f, 0f));
@@ -42,22 +45,29 @@ public class BowyerWatson : MonoBehaviour
         createTrackers();
     
         createMesh();
+
     
+    }
+
+    public Vector3 GetFaceMeshPosition(){
+        return faceMesh.transform.position;
     }
 
     
     void Update()
     {
         Reposition();
-        if (Input.GetButtonDown("Fire2")){
-            wireframe = !wireframe;
-            
-            meshRenderer.material = wireframe? new Material(Shader.Find("Custom/Wireframe")) : new Material(Shader.Find("Particles/Standard Unlit"))  ;
-        }
+
+
+    
+
 
     }
 
-
+    public void switchShaderMode(){
+            wireframe = !wireframe;
+            meshRenderer.material = wireframe? new Material(Shader.Find("Custom/Wireframe")) : new Material(Shader.Find("Particles/Standard Unlit"))  ;
+    }
 
 
     private void createTrackers(){
@@ -73,6 +83,7 @@ public class BowyerWatson : MonoBehaviour
 
 
     public void Triangulation(List<Vector3> points){
+        excludes.Clear();
         foreach (GameObject tracker in trackers) {
             Destroy(tracker);
         }
@@ -239,6 +250,7 @@ public class BowyerWatson : MonoBehaviour
 
         meshFilter.mesh.vertices = positions;
 
+      
 
     }
 
@@ -261,6 +273,8 @@ public class BowyerWatson : MonoBehaviour
 
      void createMesh(){
         Mesh mesh = new Mesh();
+    
+       
 
         Vector3[] positions = new Vector3[trackers.Count];
         for (int i = 0; i < trackers.Count; i++){
@@ -298,17 +312,95 @@ public class BowyerWatson : MonoBehaviour
         //     triangulationArray[i * 3 + 2] = triangulation[i].P3;
         // }
 
-        Color[] colors = new Color[pointList.Count]; // Nowa tablica kolorów
+     
+        mesh.triangles = triangulationArray;
+        
+
+      
+
+
+
+
+        List<int> filteredTriangles = new List<int>();
+        
+     
+            for(int i = 0; i < faceTriangles.Count; i ++){
+              
+                    if(!excludes.Contains(i)){
+                        Debug.Log("Not excluded: "+i);
+                        filteredTriangles.Add(triangulationArray[3*i]);
+                        filteredTriangles.Add(triangulationArray[3*i + 1]);
+                        filteredTriangles.Add(triangulationArray[3*i + 2]);
+                    } else {
+                          Debug.Log("Excluded: "+i);
+                    }
+            }
+
+        
+         
+
+         Color[] colors = new Color[pointList.Count]; // Nowa tablica kolorów
         for (int i = 0; i < pointList.Count; i++) {
             
             colors[i] = new Color(Random.value, Random.value, Random.value);
-            Debug.Log(colors[i]);
+           // Debug.Log(colors[i]);
         }
 
-        mesh.triangles = triangulationArray;
-        mesh.colors = colors; 
-        meshFilter.mesh = mesh;
 
-        meshRenderer.material = wireframe? new Material(Shader.Find("Custom/Wireframe")) : new Material(Shader.Find("Particles/Standard Unlit"))  ;
+        if(faceTriangles.Count != excludes.Count){
+        Mesh mesh2 = new Mesh();
+        mesh2.vertices = positions;
+        mesh2.colors = colors; 
+        mesh2.triangles = filteredTriangles.ToArray();
+
+        
+
+        meshFilter.mesh = mesh2;
+        meshRenderer.material = wireframe? new Material(Shader.Find("Custom/Wireframe")) : new Material(Shader.Find("Particles/Standard Unlit"));
+
+        }
+    
+
+       //Debug.Log(excludes.Count+"/"+faceTriangles.Count);
+
+
+    if(meshCollider != null){
+        Destroy(meshCollider); 
     }
+    //meshFilter.mesh.triangles.Length !=0
+      if(faceTriangles.Count != 0){
+                meshCollider = faceMesh.AddComponent<MeshCollider>();
+                  meshCollider.sharedMesh = mesh;
+            }
+            
+           
+        
+
+       
+
+    }
+
+
+
+
+    public void exclude(){
+        if(pointList.Count>=6){
+            Ray ray = camera.ScreenPointToRay(Input.mousePosition);
+                RaycastHit raycastHit;
+                if (meshCollider.Raycast(ray, out raycastHit, 100000)){
+                    
+                        if (excludes.Contains(raycastHit.triangleIndex)){
+
+                            excludes.Remove(raycastHit.triangleIndex);
+                            Debug.Log("Usuwam: "+raycastHit.triangleIndex);
+                        } else{
+                            excludes.Add(raycastHit.triangleIndex); 
+                            Debug.Log("Dodaje: "+raycastHit.triangleIndex);
+                        }
+
+                    createMesh();
+                }
+        }
+    }
+
 }
