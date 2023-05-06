@@ -32,6 +32,31 @@ public class BowyerWatson : MonoBehaviour
     Vector3 offset  = new Vector3(2f, 0f, 0f);
     List<Vector3> supertTriangle = new List<Vector3>();
 
+
+    List<List<Vector3>> keyframes = new List<List<Vector3>>();
+    List<float> keyframeTimes = new List<float>();
+
+private float timeSinceLastKeyframe;
+
+
+bool parkeMode = false;
+int currentKeyframeIndex =0;
+
+public float keyframeLength = 0.1f;
+
+   public void AddKeyframe(){
+
+        keyframes.Add(GetComponent<MarkerInjector>().MarkersGlobalCoords());
+        keyframeTimes.Add(Time.time);
+   }   
+
+    public void changeParkMode(){
+       parkeMode = !parkeMode;
+       keyframes.Clear();
+       keyframeTimes.Clear();
+    }
+
+
     void Start()
     {
         faceMesh = new GameObject("faceMesh");
@@ -56,7 +81,45 @@ public class BowyerWatson : MonoBehaviour
     
     void Update()
     {
-        Reposition();
+
+     
+
+        if(parkeMode){
+            if(keyframes.Count>=2){
+
+
+
+            int nextKeyframeIndex = (currentKeyframeIndex+1) % keyframes.Count;
+
+            timeSinceLastKeyframe += Time.deltaTime;
+            
+            float deltaTime = (currentKeyframeIndex == keyframes.Count-1 )? 0:
+            Mathf.Abs(keyframeTimes[nextKeyframeIndex] -keyframeTimes[currentKeyframeIndex]);
+           
+            if (timeSinceLastKeyframe >= deltaTime){
+               timeSinceLastKeyframe = 0f;     
+               currentKeyframeIndex = nextKeyframeIndex;
+                
+               return;
+            }
+                //Debug.Log(currentKeyframeIndex+"/"+keyframes.Count);
+
+
+                for(int i = 3; i<pointList.Count; i++){
+                    Debug.Log("i: "+i);
+                    float phaseFraction = timeSinceLastKeyframe / deltaTime;
+                    Vector3 difference = keyframes[nextKeyframeIndex][i-3] - keyframes[currentKeyframeIndex][i-3];
+                    float C = (1f - Mathf.Cos(phaseFraction * Mathf.PI))/2f;
+                    pointList[i] = (keyframes[currentKeyframeIndex][i-3] + C * difference) +offset;
+                }
+                meshFilter.mesh.vertices = pointList.ToArray();
+            }
+            
+        } else {
+
+            Reposition();
+        }
+        
 
 
     

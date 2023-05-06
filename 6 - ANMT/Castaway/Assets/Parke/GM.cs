@@ -26,10 +26,19 @@ public class GM : MonoBehaviour
 
 
         
-         if (Input.GetKeyDown(KeyCode.C)){
+        if (Input.GetKeyDown(KeyCode.P)){
+            bowyerWatson.changeParkMode();
+        }
+
+        if (Input.GetKeyDown(KeyCode.K)){
+            bowyerWatson.AddKeyframe();
+        }
+
+
+        if (Input.GetKeyDown(KeyCode.C)){
             f1Mode = !f1Mode;
            
- camera.transform.position = f1Mode? 
+                camera.transform.position = f1Mode? 
                 actor.transform.position + modulate :
                 actor.transform.position + new Vector3(2,0,0) + modulate ;
 
